@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#ffffff"><title>گالری تصاویر دیجی‌کالا</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#202124;font-family:Tahoma,Arial,sans-serif}
+header{position:sticky;top:0;background:#fff;padding:14px 16px;z-index:3;box-shadow:0 1px 8px #0001}
+h1{font-size:18px;margin:0 0 12px}.form{display:flex;gap:8px}
+input{min-width:0;flex:1;padding:13px;border:1px solid #ddd;border-radius:10px;font-size:14px;direction:ltr}
+button{border:0;border-radius:10px;padding:0 16px;background:#e6123d;color:white;font-weight:bold;font-size:14px}
+button:disabled{opacity:.6}#status{padding:12px 16px;color:#555;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:5px}
+.tile{background:#fff;aspect-ratio:1;border-radius:7px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.tile img{width:100%;height:100%;object-fit:contain;cursor:zoom-in}
+#viewer{display:none;position:fixed;inset:0;background:#000e;z-index:10;align-items:center;justify-content:center;padding:12px}
+#viewer img{max-width:100%;max-height:100%;object-fit:contain}#viewer button{position:absolute;top:18px;left:18px;padding:10px}
+.small{font-size:11px;color:#777;margin-top:8px}
+@media(min-width:700px){.grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:10px;max-width:1000px;margin:auto}header{padding:18px max(16px,calc((100vw - 1000px)/2))}}
+</style></head>
+<body>
+<header><h1>گالری تصاویر دیجی‌کالا</h1>
+<div class="form"><input id="url" value="https://www.digikala.com/search/category-peppergrinder/" placeholder="لینک دسته‌بندی دیجی‌کالا">
+<button id="go">استخراج عکس‌ها</button></div>
+<div class="small">لینک دسته‌بندی را وارد کن؛ تصاویر همه صفحات در یک گالری نمایش داده می‌شوند.</div></header>
+<div id="status">آماده دریافت لینک</div><main id="grid" class="grid"></main>
+<div id="viewer"><button id="close">بستن ✕</button><img id="large" alt="تصویر محصول"></div>
+<script>
+const $=id=>document.getElementById(id);
+$('go').onclick=async()=>{
+ const url=$('url').value.trim();if(!url)return;
+ $('go').disabled=true;$('go').textContent='در حال استخراج...';$('grid').innerHTML='';
+ $('status').textContent='در حال دریافت صفحات و تصاویر؛ لطفاً این صفحه را باز نگه دار.';
+ try{
+  const r=await fetch('/api/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+  const d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||'استخراج ناموفق بود');
+  $('status').textContent=`${d.pages} صفحه بررسی شد · ${d.products} کالا · ${d.images.length} تصویر`+(d.failed_products?` · ${d.failed_products} کالا خطا داشت`:'');
+  if(!d.images.length){$('status').textContent+=' — تصویری از پاسخ دیجی‌کالا دریافت نشد.';return}
+  const frag=document.createDocumentFragment();
+  d.images.forEach(x=>{const cell=document.createElement('div');cell.className='tile';const im=document.createElement('img');im.loading='lazy';im.src=x.image;im.onclick=()=>{$('large').src=x.image;$('viewer').style.display='flex'};cell.append(im);frag.append(cell)});
+  $('grid').append(frag);
+ }catch(e){$('status').textContent='خطا: '+e.message}
+ finally{$('go').disabled=false;$('go').textContent='استخراج عکس‌ها'}
+};
+$('close').onclick=()=>$('viewer').style.display='none';
+$('viewer').onclick=e=>{if(e.target===$('viewer'))$('viewer').style.display='none'};
+</script></body></html>
